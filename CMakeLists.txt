@@ -30,6 +30,9 @@ if($ENV{TRAVIS})
   if(NOT DEFINED BRAYNS_BRION_ENABLED)
     set(BRAYNS_BRION_ENABLED ON)
   endif()
+  if(NOT DEFINED BRAYNS_VRPN_ENABLED)
+    set(BRAYNS_VRPN_ENABLED ON)
+  endif()
 endif()
 include(Common)
 
@@ -79,6 +82,14 @@ if(TARGET Deflect)
   option(BRAYNS_DEFLECT_ENABLED "Activate streaming to display wall" ON)
 else()
   unset(BRAYNS_DEFLECT_ENABLED)
+endif()
+
+# vrpn plugin
+common_find_package(VRPN)
+if(VRPN_FOUND)
+  option(BRAYNS_VRPN_ENABLED "Activate vrpn plugin" ON)
+else()
+  unset(BRAYNS_VRPN_ENABLED)
 endif()
 
 # Data access

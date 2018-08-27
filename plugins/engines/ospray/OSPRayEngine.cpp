@@ -409,6 +409,14 @@ void OSPRayEngine::_createCameras()
                                     1.f,
                                     {0.f, 1e31f}});
         }
+        if(camera == "cylindricStereo")
+        {
+            properties.setProperty({"stereoMode",
+                                    "Stereo mode",
+                                    (int)StereoMode::OSP_STEREO_SIDE_BY_SIDE,
+                                    {"None", "Left eye", "Right eye",
+                                    "Side by side"}});
+        }
         ospCamera->setProperties(camera, properties);
     }
     ospCamera->setCurrentType(rp.getCameraType());

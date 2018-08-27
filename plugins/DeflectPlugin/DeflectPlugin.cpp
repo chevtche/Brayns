@@ -95,6 +95,7 @@ public:
 
         const bool observerOnly = _engine->haveDeflectPixelOp();
         if (deflectEnabled && !_stream && _startStream(observerOnly))
+//std::cout << "hello" << std::endl;
             _sendSizeHints(*_engine);
 
         if (deflectEnabled && _stream && _stream->isConnected())
@@ -243,6 +244,7 @@ private:
                 _keyboardHandler.handleKeyboardShortcut(event.text[0]);
                 break;
             }
+#if 0
             case deflect::Event::EVT_VIEW_SIZE_CHANGED:
             {
                 Vector2ui newSize(event.dx, event.dy);
@@ -253,6 +255,7 @@ private:
                     _engine->getSupportedFrameSize(newSize));
                 break;
             }
+#endif
             case deflect::Event::EVT_CLOSE:
             {
                 _params.setEnabled(false);
@@ -268,17 +271,17 @@ private:
         }
     }
 
-    void _sendSizeHints(Engine& engine)
+    void _sendSizeHints(Engine& )
     {
-        const auto size =
-            engine.getSupportedFrameSize(_appParams.getWindowSize());
-        const auto minSize = engine.getMinimumFrameSize();
+//        const auto size =
+//            engine.getSupportedFrameSize(_appParams.getWindowSize());
+//        const auto minSize = engine.getMinimumFrameSize();
 
         auto sizeHints = deflect::SizeHints();
-        sizeHints.preferredWidth = size.x();
-        sizeHints.preferredHeight = size.y();
-        sizeHints.minWidth = minSize.x();
-        sizeHints.minHeight = minSize.y();
+        sizeHints.preferredWidth = 2985*4;// size.x();
+        sizeHints.preferredHeight = 856*4;//size.y();
+//        sizeHints.minWidth = minSize.x()*2;
+//        sizeHints.minHeight = minSize.y();
         _stream->sendSizeHints(sizeHints);
     }
 

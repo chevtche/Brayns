@@ -21,6 +21,10 @@ if(BRAYNS_DEFLECT_ENABLED)
   list(APPEND BRAYNSPLUGINS_LINK_LIBRARIES PRIVATE Deflect)
 endif()
 
+if(BRAYNS_VRPN_ENABLED)
+  add_subdirectory(VRPNPlugin)
+endif()
+
 if(BRAYNS_NETWORKING_ENABLED)
   list(APPEND BRAYNSPLUGINS_HEADERS
     RocketsPlugin/BinaryRequests.h
