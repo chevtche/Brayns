@@ -30,6 +30,7 @@ set(BRAYNSOPTIXENGINE_EXPORT ON)
 
 set(BRAYNSOPTIXENGINE_CU
   cuda/camera/PerspectiveCamera.cu
+  cuda/camera/CylindricCamera.cu
   cuda/Constantbg.cu
   cuda/geometry/Cones.cu
   cuda/geometry/Cylinders.cu
@@ -47,6 +48,7 @@ CUDA_WRAP_SRCS(braynsOptixEngine
 
 set(BRAYNSOPTIXENGINE_PTX
   braynsOptixEngine_generated_PerspectiveCamera.cu.ptx
+  braynsOptixEngine_generated_CylindricCamera.cu.ptx
   braynsOptixEngine_generated_Constantbg.cu.ptx
   braynsOptixEngine_generated_Cones.cu.ptx
   braynsOptixEngine_generated_Cylinders.cu.ptx

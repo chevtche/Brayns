@@ -24,6 +24,10 @@
 
 namespace
 {
+const std::string CUDA_ATTR_CAMERA_SEGMENT_ID = "segmentID";
+const std::string CUDA_ATTR_CAMERA_HEAD_POS = "headPos";
+const std::string CUDA_ATTR_CAMERA_HEAD_UVEC = "headUVec";
+
 const std::string CUDA_ATTR_CAMERA_BAD_COLOR = "bad_color";
 const std::string CUDA_ATTR_CAMERA_OFFSET = "offset";
 const std::string CUDA_ATTR_CAMERA_EYE = "eye";
@@ -60,6 +64,9 @@ void OptiXCamera::commit()
 
     _calculateCameraVariables(u, v, w);
 
+    context[CUDA_ATTR_CAMERA_SEGMENT_ID]->setUint(0);
+    context[CUDA_ATTR_CAMERA_HEAD_POS]->setFloat(0.0f, 0.0f, 0.0f);
+    context[CUDA_ATTR_CAMERA_HEAD_UVEC]->setFloat(1.0f, 0.0f, 0.0f);
     context[CUDA_ATTR_CAMERA_EYE]->setFloat(pos.x, pos.y, pos.z);
     context[CUDA_ATTR_CAMERA_U]->setFloat(u.x, u.y, u.z);
     context[CUDA_ATTR_CAMERA_V]->setFloat(v.x, v.y, v.z);
@@ -106,21 +113,9 @@ void OptiXCamera::commit()
 void OptiXCamera::_calculateCameraVariables(Vector3d& U, Vector3d& V,
                                             Vector3d& W)
 {
-    const auto& position = getPosition();
-    const auto& up = glm::rotate(getOrientation(), Vector3d(0, 1, 0));
-
-    float ulen, vlen, wlen;
-    W = getTarget() - position;
-
-    wlen = glm::length(W);
-    U = normalize(glm::cross(W, up));
-    V = normalize(glm::cross(U, W));
-
-    vlen = wlen *
-           tanf(0.5f * getPropertyOrValue<double>("fovy", 45.0) * M_PI / 180.f);
-    V *= vlen;
-    ulen = vlen * getPropertyOrValue<double>("aspect", 1.0);
-    U *= ulen;
+    U = normalize(glm::rotate(getOrientation(), Vector3d(1, 0, 0)));
+    V = normalize(glm::rotate(getOrientation(), Vector3d(0, 1, 0)));
+    W = normalize(glm::rotate(getOrientation(), Vector3d(0, 0, 1)));
 }
 
 } // namespace brayns
