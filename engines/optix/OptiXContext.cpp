@@ -23,6 +23,7 @@
 #include <engines/optix/braynsOptixEngine_generated_Cones.cu.ptx.h>
 #include <engines/optix/braynsOptixEngine_generated_Constantbg.cu.ptx.h>
 #include <engines/optix/braynsOptixEngine_generated_Cylinders.cu.ptx.h>
+#include <engines/optix/braynsOptixEngine_generated_CylindricCamera.cu.ptx.h>
 #include <engines/optix/braynsOptixEngine_generated_PerspectiveCamera.cu.ptx.h>
 #include <engines/optix/braynsOptixEngine_generated_Spheres.cu.ptx.h>
 #include <engines/optix/braynsOptixEngine_generated_TriangleMesh.cu.ptx.h>
@@ -40,6 +41,8 @@ const std::string CUDA_TRIANGLES_MESH =
     braynsOptixEngine_generated_TriangleMesh_cu_ptx;
 const std::string CUDA_PERSPECTIVE_CAMERA =
     braynsOptixEngine_generated_PerspectiveCamera_cu_ptx;
+const std::string CUDA_CYLINDRIC_CAMERA =
+    braynsOptixEngine_generated_CylindricCamera_cu_ptx;
 const std::string CUDA_MISS = braynsOptixEngine_generated_Constantbg_cu_ptx;
 
 const std::string CUDA_FUNC_BOUNDS = "bounds";
@@ -48,6 +51,7 @@ const std::string CUDA_FUNC_ROBUST_INTERSECTION = "robust_intersect";
 const std::string CUDA_FUNC_EXCEPTION = "exception";
 
 const std::string CUDA_FUNC_PERSPECTIVE_CAMERA = "perspectiveCamera";
+const std::string CUDA_FUNC_CYLINDRIC_CAMERA = "cylindricCamera";
 const std::string CUDA_FUNC_CAMERA_EXCEPTION = "exception";
 const std::string CUDA_FUNC_CAMERA_ENVMAP_MISS = "envmap_miss";
 
@@ -114,9 +118,11 @@ const OptixShaderProgram& OptiXContext::getRenderer(const std::string& name)
 {
     ::optix::Program camera;
     // Ray generation program
-    camera =
-        _optixContext->createProgramFromPTXString(CUDA_PERSPECTIVE_CAMERA,
-                                                  CUDA_FUNC_PERSPECTIVE_CAMERA);
+    //camera =
+    //    _optixContext->createProgramFromPTXString(CUDA_PERSPECTIVE_CAMERA,
+    //                                              CUDA_FUNC_PERSPECTIVE_CAMERA);
+    camera = _optixContext->createProgramFromPTXString(CUDA_CYLINDRIC_CAMERA,
+                                                       CUDA_FUNC_CYLINDRIC_CAMERA);
     _optixContext->setRayGenerationProgram(0, camera);
 
     // Miss programs
