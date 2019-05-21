@@ -176,6 +176,11 @@ void OptiXScene::commit()
         if (hasEnvironmentMap() && optixMat->hasTexture(i.first))
             sampler = optixMat->getTextureSampler(i.first);
         context[i.second]->setInt(sampler->getId());
+        if (hasEnvironmentMap() && i.first == TextureType::radiance)
+            context["radianceLODs"]->setUint(
+                _backgroundMaterial->getTexture(TextureType::radiance)
+                    ->getMipLevels() -
+                1);
     }
 
     context["use_envmap"]->setUint(hasEnvironmentMap() ? 1 : 0);

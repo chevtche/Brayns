@@ -56,6 +56,7 @@ rtDeclareVariable(uint, use_envmap, , );
 rtDeclareVariable(int, envmap_radiance, , );
 rtDeclareVariable(int, envmap_irradiance, , );
 rtDeclareVariable(int, envmap_brdf_lut, , );
+rtDeclareVariable(uint, radianceLODs, , );
 
 static __device__ inline float calculateAttenuation(float3 WorldPos, float3 lightPos)
 {
@@ -98,12 +99,7 @@ static __device__ inline float geometrySmith(float3 N, float3 V, float3 L, float
 
 static __device__ inline float3 fresnelSchlick(float cosTheta, float3 F0)
 {
-    return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
-}
-
-static __device__ inline float3 max(const float3& a, const float3& b)
-{
-    return make_float3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
+    return F0 + (make_float3(1.0f) - F0) * pow(1.0f - cosTheta, 5.0f);
 }
 
 static __device__ inline float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
@@ -140,14 +136,10 @@ static __device__ inline void shade()
 
     const float3 WorldPos = ray.origin + t_hit * ray.direction;
     const float3 V = -ray.direction;
-    const float4 albedoMetallic = rtTex2DGrad<float4>(albedoMetallic_map, texcoord.x, texcoord.y, ddx, ddy);
-    float3 albedo = make_float3(albedoMetallic);
-    albedo.x = pow(albedo.x, 2.2f);
-    albedo.y = pow(albedo.y, 2.2f);
-    albedo.z = pow(albedo.z, 2.2f);
+    const float4 albedoMetallic = SRGBtoLinear(rtTex2DGrad<float4>(albedoMetallic_map, texcoord.x, texcoord.y, ddx, ddy));
+    const float3 albedo = make_float3(albedoMetallic);
 
-    const float4 normalRoughness = rtTex2DGrad<float4>(normalRoughness_map, texcoord.x, texcoord.y, ddx, ddy);
-    //const float4 normalRoughness = rtTex2D<float4>(normalRoughness_map, texcoord.x, texcoord.y);
+    const float4 normalRoughness = rtTex2D<float4>(normalRoughness_map, texcoord.x, texcoord.y);
     const float3 normal = make_float3(normalRoughness);
     optix::Matrix3x3 TBN;
     TBN.setCol(0,tangent);
@@ -192,30 +184,23 @@ static __device__ inline void shade()
         const float2 irradianceUV = getEquirectangularUV(N);
         const float2 radianceUV = getEquirectangularUV(reflect(-V, N));
 
-        const float3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, normalRoughness.w);
+        const float NdotV = dot(N, V);
+        const float3 F = fresnelSchlickRoughness(max(NdotV, 0.0f), F0, normalRoughness.w);
         const float3 kD = (make_float3(1.0f) - F) * (1.0f - albedoMetallic.w);
 
         const float3 irradiance = make_float3(rtTex2D<float4>(envmap_irradiance, irradianceUV.x, irradianceUV.y));
+        const float3 diffuse = irradiance * albedo;
 
         // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
-        const float MAX_REFLECTION_LOD = 4.0f;
-        const float3 prefilteredColor = make_float3(rtTex2DLod<float4>(envmap_radiance, radianceUV.x, radianceUV.y, normalRoughness.w * MAX_REFLECTION_LOD));
-        const float2 brdf = make_float2(rtTex2D<float4>(envmap_brdf_lut, max(dot(N, V), 0.0), normalRoughness.w));
+        const float3 prefilteredColor = make_float3(rtTex2DLod<float4>(envmap_radiance, radianceUV.x, radianceUV.y, normalRoughness.w * float(radianceLODs)));
+        const float2 brdf = make_float2(rtTex2D<float4>(envmap_brdf_lut, max(NdotV, 0.0), normalRoughness.w));
         const float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-        const float3 diffuse = irradiance * albedo;
         ambient = (kD * diffuse + specular)/* * ao*/;
     }
 
-    float3 color = ambient + Lo;
-
-    color = color / (color + make_float3(1.0f));
-    color.x = pow(color.x, 1.0f / 2.2f);
-    color.y = pow(color.y, 1.0f / 2.2f);
-    color.z = pow(color.z, 1.0f / 2.2f);
-    //color = pow(color, make_float3(1.0f / 2.2f)); // SHIT !!!
-
-    prd.result = color;
+    const float3 color = ambient + Lo;
+    prd.result = linearToSRGB(tonemap(color));
 }
 
 RT_PROGRAM void any_hit_shadow()
