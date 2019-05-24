@@ -30,6 +30,20 @@ Texture2D::Texture2D()
 {
 }
 
+uint8_t Texture2D::getMipMapsLevels() const
+{
+    uint8_t mipMapLevels = 1u;
+    uint32_t nx = _width;
+    uint32_t ny = _height;
+    while(nx % 2 == 0 && ny % 2 == 0)
+    {
+        nx /= 2;
+        ny /= 2;
+        ++mipMapLevels;
+    }
+    return mipMapLevels; 
+}
+
 void Texture2D::setRawData(unsigned char* data, size_t size)
 {
     _rawData.clear();

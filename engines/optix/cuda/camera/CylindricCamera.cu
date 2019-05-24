@@ -19,6 +19,7 @@
 
 #include "../Helpers.h"
 #include "../Random.h"
+#include "../../CommonStructs.h"
 #include <optix.h>
 #include <optixu/optixu_math_namespace.h>
 #include <optixu/optixu_matrix_namespace.h>
@@ -33,13 +34,6 @@ static const float ANGLE_PER_BORDER_SEGMENT = (PI - 8.0f * OPENDECK_BEZEL_ANGLE)
 static const float FULL_ANGLE = ANGLE_PER_BORDER_SEGMENT + OPENDECK_BEZEL_ANGLE;   
 
 using namespace optix;
-
-struct PerRayData_radiance
-{
-    float3 result;
-    float importance;
-    int depth;
-};
 
 rtDeclareVariable(unsigned int, segmentID, , ); //even segmentsID are right eye buffers and odd are left eye buffers
 rtDeclareVariable(float3, headPos, , );
@@ -170,6 +164,10 @@ __device__ float3 launch(unsigned int& seed, const float2 screen,
 
     float3 dirDx = (dotD * dPx - dot(d,dPx) * d) / (denom * screen.x);
     float3 dirDy = (dotD * dPy - dot(d,dPy) * d) / (denom * screen.y);
+
+    PerRayData_radiance prd;
+    prd.importance = 1.f;
+    prd.depth = 0;
     prd.rayDdx = transform * dirDx;
     prd.rayDdy = transform * dirDy;
     dir = transform * dir;
@@ -180,10 +178,6 @@ __device__ float3 launch(unsigned int& seed, const float2 screen,
 
     getClippingValues(org, dir, near, far);
     optix::Ray ray(org, dir, radiance_ray_type, near, far);
-
-    PerRayData_radiance prd;
-    prd.importance = 1.f;
-    prd.depth = 0;
 
     rtTrace(top_object, ray, prd);
 

@@ -142,17 +142,18 @@ const OptixShaderProgram& OptiXContext::getRenderer(const std::string& name)
 
 ::optix::TextureSampler OptiXContext::createTextureSampler(Texture2DPtr texture)
 {
+    if (texture->getDepth() != 1u)
+        throw std::runtime_error("Non 8-bits textures are not supported");
+
     uint16_t nx = texture->getWidth();
     uint16_t ny = texture->getHeight();
     const uint16_t channels = texture->getNbChannels();
     const uint16_t optixChannels = 4;
-    const bool hasAlpha = optixChannels == channels;
+    const bool hasAlpha = optixChannels == channels;   
 
-    const uint16_t smallestSize = std::min(nx, ny);
-    const uint16_t mipMapLevels = std::log2(smallestSize) + 0.5f;
+    const uint8_t mipMapLevels = texture->getMipMapsLevels();
 
-    if (texture->getDepth() != 1u)
-        throw std::runtime_error("Non 8-bits textures are not supported");
+    std::cout << "!!!!!!!!!!!!!!!!!!!!MipMapLevels: " << (int)mipMapLevels << std::endl;
 
     // Create texture sampler
     ::optix::TextureSampler sampler = _optixContext->createTextureSampler();
@@ -195,38 +196,44 @@ const OptixShaderProgram& OptiXContext::getRenderer(const std::string& name)
     ny /= 2u;
     nx /= 2u;
 
+    std::vector<uint8_t> colors = {255u, 0u, 0u, 255u, 255u, 0u, 0u, 0u, 255u};
+
     for (uint8_t currentLevel = 1u; currentLevel < mipMapLevels; ++currentLevel)
     {
         ptr_dst = mipMapBuffers[currentLevel];
-        uint8_t* ptr_src = mipMapBuffers[currentLevel - 1u];
+        //uint8_t* ptr_src = mipMapBuffers[currentLevel - 1u];
         for (uint16_t y = 0u; y < ny; ++y)
         {
             for (uint16_t x = 0u; x < nx; ++x)
             {
-                ptr_dst[(y * nx + x) * 4u] =
+                ptr_dst[(y * nx + x) * 4u] = colors[((currentLevel - 1) % 3) * 3];
+                ptr_dst[(y * nx + x) * 4u + 1] = colors[((currentLevel - 1) % 3) * 3 + 1];
+                ptr_dst[(y * nx + x) * 4u + 2] = colors[((currentLevel - 1) % 3) * 3 + 2];
+                ptr_dst[(y * nx + x) * 4u + 3] = 255; 
+                /*ptr_dst[(y * nx + x) * 4u] =
                     (ptr_src[(y * 2u * nx + x) * 8u] +
                      ptr_src[((y * 2u * nx + x) * 2u + 1u) * 4u] +
                      ptr_src[((y * 2u + 1u) * nx + x) * 8u] +
                      ptr_src[(((y * 2u + 1u) * nx + x) * 2u + 1u) * 4u]) /
-                    4.0f;
+                     4.0f;
                 ptr_dst[(y * nx + x) * 4u + 1u] =
                     (ptr_src[(y * 2u * nx + x) * 8u + 1u] +
                      ptr_src[((y * 2u * nx + x) * 2u + 1u) * 4u + 1u] +
                      ptr_src[((y * 2u + 1u) * nx + x) * 8u + 1u] +
                      ptr_src[(((y * 2u + 1u) * nx + x) * 2u + 1u) * 4u + 1u]) /
-                    4.0f;
+                     4.0f;
                 ptr_dst[(y * nx + x) * 4u + 2u] =
                     (ptr_src[(y * 2u * nx + x) * 8u + 2u] +
                      ptr_src[((y * 2u * nx + x) * 2u + 1u) * 4u + 2u] +
                      ptr_src[((y * 2u + 1u) * nx + x) * 8u + 2u] +
                      ptr_src[(((y * 2u + 1u) * nx + x) * 2u + 1u) * 4u + 2u]) /
-                    4.0f;
+                     4.0f;
                 ptr_dst[(y * nx + x) * 4u + 3u] =
                     (ptr_src[(y * 2u * nx + x) * 8u + 3u] +
                      ptr_src[((y * 2u * nx + x) * 2u + 1u) * 4u + 3u] +
                      ptr_src[((y * 2u + 1u) * nx + x) * 8u + 3u] +
                      ptr_src[(((y * 2u + 1u) * nx + x) * 2u + 1u) * 4u + 3u]) /
-                    4.0f;
+                     4.0f;*/
             }
         }
         ny /= 2u;

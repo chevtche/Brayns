@@ -147,7 +147,7 @@ static __device__ inline void shade()
     albedo.z = pow(albedo.z, 2.2f);
 
     const float4 normalRoughness = rtTex2DGrad<float4>(normalRoughness_map, texcoord.x, texcoord.y, ddx, ddy);
-    //const float4 normalRoughness = rtTex2D<float4>(normalRoughness_map, texcoord.x, texcoord.y);
+    const float roughness = max(normalRoughness.w, 0.05f);
     const float3 normal = make_float3(normalRoughness);
     optix::Matrix3x3 TBN;
     TBN.setCol(0,tangent);
@@ -172,8 +172,8 @@ static __device__ inline void shade()
         const float3 radiance = light.color * attenuation * 20.0f; // 20.0f is shit !!!
 
         // cook-torrance brdf
-        const float NDF = distributionGGX(N, H, normalRoughness.w);
-        const float G = geometrySmith(N, V, L, normalRoughness.w);
+        const float NDF = distributionGGX(N, H, roughness);
+        const float G = geometrySmith(N, V, L, roughness);
         const float3 F = fresnelSchlick(max(dot(H, V), 0.0f), F0);
 
         const float3 kD = (make_float3(1.0f) - F) * (1.0f - albedoMetallic.w);
@@ -192,15 +192,15 @@ static __device__ inline void shade()
         const float2 irradianceUV = getEquirectangularUV(N);
         const float2 radianceUV = getEquirectangularUV(reflect(-V, N));
 
-        const float3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, normalRoughness.w);
+        const float3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
         const float3 kD = (make_float3(1.0f) - F) * (1.0f - albedoMetallic.w);
 
         const float3 irradiance = make_float3(rtTex2D<float4>(envmap_irradiance, irradianceUV.x, irradianceUV.y));
 
         // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
         const float MAX_REFLECTION_LOD = 4.0f;
-        const float3 prefilteredColor = make_float3(rtTex2DLod<float4>(envmap_radiance, radianceUV.x, radianceUV.y, normalRoughness.w * MAX_REFLECTION_LOD));
-        const float2 brdf = make_float2(rtTex2D<float4>(envmap_brdf_lut, max(dot(N, V), 0.0), normalRoughness.w));
+        const float3 prefilteredColor = make_float3(rtTex2DLod<float4>(envmap_radiance, radianceUV.x, radianceUV.y, roughness * MAX_REFLECTION_LOD));
+        const float2 brdf = make_float2(rtTex2D<float4>(envmap_brdf_lut, max(dot(N, V), 0.0), roughness));
         const float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
         const float3 diffuse = irradiance * albedo;

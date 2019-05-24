@@ -46,6 +46,7 @@ public:
     {
         return _height * _width * _depth * _nbChannels;
     }
+    uint8_t getMipMapsLevels() const;
     unsigned char* getRawData() { return _rawData.data(); }
     void setRawData(unsigned char* data, size_t size);
     void setRawData(std::vector<unsigned char>&& rawData);
