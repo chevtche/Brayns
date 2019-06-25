@@ -30,6 +30,7 @@ set(BRAYNSOPTIXENGINE_EXPORT ON)
 
 set(BRAYNSOPTIXENGINE_CU
   cuda/camera/PerspectiveCamera.cu
+  cuda/camera/OpenDeckCamera.cu
   cuda/Constantbg.cu
   cuda/geometry/Cones.cu
   cuda/geometry/Cylinders.cu
@@ -48,6 +49,7 @@ CUDA_WRAP_SRCS(braynsOptixEngine
 
 set(BRAYNSOPTIXENGINE_PTX
   braynsOptixEngine_generated_PerspectiveCamera.cu.ptx
+  braynsOptixEngine_generated_OpenDeckCamera.cu.ptx
   braynsOptixEngine_generated_Constantbg.cu.ptx
   braynsOptixEngine_generated_Cones.cu.ptx
   braynsOptixEngine_generated_Cylinders.cu.ptx
@@ -68,6 +70,7 @@ set(BRAYNSOPTIXENGINE_SOURCES
   OptiXScene.cpp
   OptiXCamera.cpp
   OptiXPerspectiveCamera.cpp
+  OptiXOpenDeckCamera.cpp
   OptiXRenderer.cpp
   OptiXEngine.cpp
   OptiXMaterial.cpp
@@ -80,6 +83,7 @@ set_source_files_properties(
   OptiXScene.cpp
   OptiXCamera.cpp
   OptiXPerspectiveCamera.cpp
+  OptiXOpenDeckCamera.cpp
   OptiXRenderer.cpp
   OptiXEngine.cpp
   OptiXMaterial.cpp
@@ -94,6 +98,7 @@ set(BRAYNSOPTIXENGINE_PUBLIC_HEADERS
   OptiXScene.h
   OptiXCamera.h
   OptiXCameraProgram.h
+  OptiXOpenDeckCamera.h
   OptiXPerspectiveCamera.h
   OptiXRenderer.h
   OptiXEngine.h

@@ -28,6 +28,7 @@
 #include "OptiXCamera.h"
 #include "OptiXEngine.h"
 #include "OptiXFrameBuffer.h"
+#include "OptiXOpenDeckCamera.h"
 #include "OptiXPerspectiveCamera.h"
 #include "OptiXRenderer.h"
 #include "OptiXScene.h"
@@ -134,6 +135,13 @@ void OptiXEngine::_createCameras()
 
     context.addCamera("panoramic", camera);
     addCameraType("panoramic");
+    
+    {
+        PropertyMap properties;
+        properties.setProperty({"segmentId", 7});
+        context.addCamera("opendeck", std::make_shared<OptiXOpenDeckCamera>());
+        addCameraType("opendeck", properties);
+    }
 }
 
 void OptiXEngine::_createRenderers()
