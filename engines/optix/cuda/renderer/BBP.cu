@@ -150,7 +150,7 @@ static __device__ inline void shade()
     float3 triblend = N * N;
     triblend = triblend / (triblend.x + triblend.y + triblend.z);
 
-    const float planeSizeRatio = /*0.11f*/ 12.0f; // must be parameter
+    const float planeSizeRatio = /*0.11f*/ 0.69f; // must be parameter
     const float3 uv = planeSizeRatio * WorldPos;
     const float3 ddxuv = planeSizeRatio * ddxWPos;
     const float3 ddyuv = planeSizeRatio * ddyWPos; 

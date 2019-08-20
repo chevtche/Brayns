@@ -165,25 +165,6 @@ struct Image
     bool operator!() const { return data.empty(); }
 };
 
-Image loadImage(const std::string& envMap)
-{
-    auto image = FreeImage_Load(FIF_HDR, envMap.c_str());
-    if (!image)
-        return {};
-
-    FreeImage_FlipVertical(image);
-    const auto width = FreeImage_GetWidth(image);
-    const auto height = FreeImage_GetHeight(image);
-    const auto bpp = FreeImage_GetBPP(image);
-    const auto pitch = width * bpp / 8;
-    std::vector<float> rawData(height * pitch / sizeof(float));
-    FreeImage_ConvertToRawBits((BYTE*)rawData.data(), image, pitch, bpp,
-                               FI_RGBA_RED_MASK, FI_RGBA_GREEN_MASK,
-                               FI_RGBA_BLUE_MASK, TRUE);
-    FreeImage_Unload(image);
-    return {width, height, rawData};
-}
-
 FIBITMAP* toImage(const float* texture, const size_t width, const size_t height,
                   const bool toByte = false)
 {
@@ -221,6 +202,75 @@ void saveImage(FIBITMAP* img, std::string filename, const bool asPNG = false)
 {
     filename += asPNG ? ".png" : ".hdr";
     FreeImage_Save(asPNG ? FIF_PNG : FIF_HDR, img, filename.c_str());
+}
+
+Image loadImage(const std::string& envMap, const float amplification)
+{
+    auto format = FreeImage_GetFileType(envMap.c_str());
+
+    auto image = FreeImage_Load(format, envMap.c_str());
+    if (!image)
+        return {};
+
+    if(FreeImage_IsTransparent(image))
+        throw std::runtime_error("Our environment maps don't support alpha channel");
+
+    FreeImage_FlipVertical(image);
+    const auto width = FreeImage_GetWidth(image);
+    const auto height = FreeImage_GetHeight(image);
+    const auto bpp = FreeImage_GetBPP(image);
+    const auto pitch = width * bpp / 8;
+    std::vector<float> pixelData;
+
+    if(format == FIF_HDR)
+    {   
+        pixelData.resize(height * pitch / sizeof(float));     
+        FreeImage_ConvertToRawBits((BYTE*)pixelData.data(), image, pitch, bpp,
+                                   FI_RGBA_RED_MASK, FI_RGBA_GREEN_MASK,
+                                   FI_RGBA_BLUE_MASK, TRUE);
+    }
+    else
+    {
+        pixelData.resize(height * pitch);
+        std::vector<uint8_t> rawData(height * pitch);
+        FreeImage_ConvertToRawBits((BYTE*)rawData.data(), image, pitch, bpp,
+                               FI_RGBA_RED_MASK, FI_RGBA_GREEN_MASK,
+                               FI_RGBA_BLUE_MASK, TRUE);
+        
+        float max = std::numeric_limits<float>::min();
+        float min = std::numeric_limits<float>::max();   
+        for(size_t i = 0; i < rawData.size() / 3; ++i)
+        {
+            const float norm = std::sqrt((rawData[i*3] * rawData[i*3] + rawData[i*3+1] * rawData[i*3+1] +  rawData[i*3+2] * rawData[i*3+2]) / 65025.0f); 
+            max = std::max(max, norm);
+            min = std::min(min, norm);
+        }
+
+        const float f = (amplification * max - min) / (max - min); 
+        for(size_t i = 0; i < rawData.size() / 3; ++i)
+        {
+            const float norm = std::sqrt((rawData[i*3] * rawData[i*3] + rawData[i*3+1] * rawData[i*3+1] +  rawData[i*3+2] * rawData[i*3+2]) / 65025.0f);
+            const float finalNorm = (norm - min) * f + min;
+            float ratio;
+
+            if(norm == 0.0f)
+                ratio = 0.0f;
+            else 
+                ratio = finalNorm / norm;
+
+            pixelData[i*3+2] = std::pow(ratio * (float)rawData[i*3] / 255.0f, 2.2f);
+            pixelData[i*3+1] = std::pow(ratio * (float)rawData[i*3+1] / 255.0f, 2.2f);  
+            pixelData[i*3] = std::pow(ratio * (float)rawData[i*3+2] / 255.0f, 2.2f);
+        }
+        auto img = toImage(pixelData.data(), width, height);
+        const auto path = fs::path(envMap).parent_path();
+        const auto basename = (path / fs::path(envMap).stem()).string();
+        saveImage(img, basename);
+        FreeImage_Unload(img);
+    }
+
+    FreeImage_Unload(image);
+    return {width, height, pixelData};
 }
 
 void saveTex2d(const unsigned int texture, const unsigned int width,
@@ -309,6 +359,7 @@ int main(int argc, char** argv)
     float irradianceSampleDelta = 0.025f;
     size_t radianceSamples = 8 * 1024;
     unsigned int radianceMips = 5;
+    float amplification = 1.0f;
     bool asPNG = false;
 
     po::positional_options_description posArg;
@@ -327,6 +378,8 @@ int main(int argc, char** argv)
          "Number of radiance samples") //
         ("radiance-mips", val(&radianceMips),
          "Number of radiance mip levels") //
+        ("amplification", val(&amplification),
+         "Amplification factor for non hdr images") 
         ("png", po::bool_switch(&asPNG), "Export maps as PNG");
     options.add_options()("help", "Print this help");
 
@@ -432,7 +485,7 @@ int main(int argc, char** argv)
     // pbr: load the HDR environment map
     // ---------------------------------
 
-    const auto image = loadImage(envMap);
+    const auto image = loadImage(envMap, amplification);
     if (!image)
     {
         std::string msg("Failed to load environment map " + envMap);
